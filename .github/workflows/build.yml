@@ -1,47 +1,3 @@
-name: Build Kivy App (macOS + iOS)
-
-on:
-  push:
-    branches: [ main ]
-  release:
-    types: [ published ]
-  workflow_dispatch:
-
-jobs:
-  build-macos:
-    name: Build macOS APP
-    runs-on: macos-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pyinstaller
-        pip install pygame
-        pip install "kivy[base]" --no-binary kivy
-    
-    - name: Build with PyInstaller
-      run: |
-        pyinstaller --onedir --name MyApp --windowed --collect-data kivy main.py
-    
-    - name: Copy resources
-      run: |
-        cp -r resources dist/MyApp.app/Contents/Resources/
-    
-    - name: Upload macOS artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: MyApp-macOS
-        path: dist/MyApp.app
-
   build-ios:
     name: Build iOS IPA (simulator)
     runs-on: macos-latest
@@ -80,30 +36,3 @@ jobs:
       with:
         name: MyApp-iOS
         path: MyApp-ios/build/Release-iphonesimulator/MyApp.app
-
-  create-release:
-    name: Create Release Assets
-    needs: [build-macos, build-ios]
-    runs-on: ubuntu-latest
-    if: github.event_name == 'release'
-    
-    steps:
-    - name: Download all artifacts
-      uses: actions/download-artifact@v4
-      with:
-        path: artifacts
-    
-    - name: Zip artifacts for release
-      run: |
-        cd artifacts
-        zip -r ../MyApp-macOS.zip MyApp-macOS/
-        zip -r ../MyApp-iOS.zip MyApp-iOS/
-    
-    - name: Upload to release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          MyApp-macOS.zip
-          MyApp-iOS.zip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
