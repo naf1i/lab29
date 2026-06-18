@@ -1,4 +1,4 @@
-name: Build Kivy App
+name: Build Kivy App (macOS + iOS)
 
 on:
   push:
@@ -8,39 +8,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-windows:
-    name: Build Windows EXE
-    runs-on: windows-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pyinstaller
-        pip install "kivy[base]" kivy_examples
-    
-    - name: Build with PyInstaller
-      run: |
-        pyinstaller --onedir --name MyApp --collect-data kivy main.py
-    
-    - name: Copy resources
-      run: |
-        xcopy resources dist\MyApp\resources /E /I
-    
-    - name: Upload Windows artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: MyApp-Windows
-        path: dist/MyApp
-
   build-macos:
     name: Build macOS APP
     runs-on: macos-latest
@@ -76,7 +43,7 @@ jobs:
         path: dist/MyApp.app
 
   build-ios:
-    name: Build iOS IPA
+    name: Build iOS IPA (simulator)
     runs-on: macos-latest
     
     steps:
@@ -99,7 +66,7 @@ jobs:
       run: |
         python -m kivy_ios.toolchain build python3
         
-    - name: Create Xcode project
+    - name: Create Kivy project
       run: |
         python -m kivy_ios.toolchain create MyApp ${{ github.workspace }}
         
@@ -116,7 +83,7 @@ jobs:
 
   create-release:
     name: Create Release Assets
-    needs: [build-windows, build-macos, build-ios]
+    needs: [build-macos, build-ios]
     runs-on: ubuntu-latest
     if: github.event_name == 'release'
     
@@ -129,7 +96,6 @@ jobs:
     - name: Zip artifacts for release
       run: |
         cd artifacts
-        zip -r ../MyApp-Windows.zip MyApp-Windows/
         zip -r ../MyApp-macOS.zip MyApp-macOS/
         zip -r ../MyApp-iOS.zip MyApp-iOS/
     
@@ -137,7 +103,6 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          MyApp-Windows.zip
           MyApp-macOS.zip
           MyApp-iOS.zip
       env:
